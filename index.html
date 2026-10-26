@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ARIA-01: MOROS // Bocachica Sector Zero (Retro Glass Edition)</title>
+  <style>
+    :root {
+      --bg-dark: #030508;
+      --panel-bg: rgba(10, 16, 28, 0.95);
+      --glass-bg: rgba(22, 18, 42, 0.55);
+      --glass-border: rgba(0, 240, 255, 0.4);
+      --cyan-bright: #00f0ff;
+      --cyan-dim: #007788;
+      --magenta-bright: #ff007f;
+      --yellow-ochre: #ffb700;
+      --green-acid: #00ff88;
+      --heal-neon: #ff00ea;
+      --text-main: #d0e8ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: 'Courier New', Courier, monospace;
+      color: var(--text-main);
+    }
+
+    #app-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      max-width: 960px;
+      margin: 0 auto;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+    }
+
+    /* Dynamic Top HUD Bar */
+    #top-bar {
+      width: 100%;
+      flex-shrink: 0;
+      padding: 6px 10px;
+      padding-top: max(6px, env(safe-area-inset-top));
+      background: rgba(3, 5, 8, 0.96);
+      border-bottom: 1px solid rgba(0, 240, 255, 0.35);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      z-index: 30;
+    }
+
+    .hud-title-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hud-title {
+      font-weight: bold;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      color: var(--cyan-bright);
+      white-space: nowrap;
+    }
+
+    .status-tag {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0, 255, 136, 0.12);
+      border: 1px solid var(--green-acid);
+      color: var(--green-acid);
+      cursor: default;
+    }
+
+    .hud-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      font-size: 10px;
+      align-items: center;
+    }
+
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(0, 240, 255, 0.1);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      white-space: nowrap;
+    }
+
+    .stat-badge.magenta {
+      background: rgba(255, 0, 127, 0.1);
+      border-color: rgba(255, 0, 127, 0.3);
+      color: var(--magenta-bright);
+    }
+
+    .stat-badge.yellow {
+      background: rgba(255, 183, 0, 0.1);
+      border-color: rgba(255, 183, 0, 0.3);
+      color: var(--yellow-ochre);
+    }
+
+    .top-workbench-btn {
+      background: rgba(0, 240, 255, 0.2);
+      border: 1px solid var(--cyan-bright);
+      color: var(--cyan-bright);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .top-workbench-btn:active {
+      background: var(--cyan-bright);
+      color: #030508;
+    }
+
+    #viewport {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-dark);
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .crt-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%);
+      background-size: 100% 4px;
+      z-index: 4;
+      pointer-events: none;
+      opacity: 0.22;
+    }
+
+    /* GBA-Inspired Retro Handheld Controls */
+    #glass-controls-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 10px 18px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 20;
+      pointer-events: none;
+      background: linear-gradient(to top, rgba(3, 5, 8, 0.88) 0%, rgba(3, 5, 8, 0.25) 75%, transparent 100%);
+    }
+
+    #touch-dpad {
+      pointer-events: auto;
+      position: relative;
+      width: 148px;
+      height: 148px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 2px solid var(--glass-border);
+      border-radius: 24px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 240, 255, 0.2);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 6px;
+      gap: 4px;
+    }
+
+    .dpad-btn {
+      background: rgba(35, 28, 60, 0.7);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: var(--cyan-bright);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+      transition: background 0.08s, transform 0.05s;
+    }
+    .dpad-btn:active {
+      background: var(--cyan-bright);
+      color: #030508;
+      border-color: #fff;
+      transform: scale(0.93);
+    }
+
+    .dpad-up    { grid-column: 2; grid-row: 1; border-radius: 10px 10px 4px 4px; }
+    .dpad-left  { grid-column: 1; grid-row: 2; border-radius: 10px 4px 4px 10px; }
+    .dpad-center{ grid-column: 2; grid-row: 2; background: rgba(14, 10, 28, 0.6); border: none; font-size: 9px; color: var(--cyan-dim); display:flex; align-items:center; justify-content:center; letter-spacing: 1px;}
+    .dpad-right { grid-column: 3; grid-row: 2; border-radius: 4px 10px 10px 4px; }
+    .dpad-down  { grid-column: 2; grid-row: 3; border-radius: 4px 4px 10px 10px; }
+
+    .action-group {
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .action-prompt-btn {
+      background: rgba(255, 183, 0, 0.28);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 2px solid var(--yellow-ochre);
+      color: var(--yellow-ochre);
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(255, 183, 0, 0.3);
+      letter-spacing: 0.8px;
+    }
+    .action-prompt-btn:active {
+      background: var(--yellow-ochre);
+      color: #030508;
+    }
+
+    #toast-banner {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-40px);
+      background: rgba(8, 12, 20, 0.96);
+      border: 1px solid var(--cyan-bright);
+      color: var(--cyan-bright);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: bold;
+      z-index: 60;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      opacity: 0;
+      pointer-events: none;
+      text-align: center;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.35);
+    }
+    #toast-banner.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .overlay-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 460px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--cyan-bright);
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.4);
+      border-radius: 8px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 12px;
+      max-height: 88%;
+      overflow-y: auto;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #battle-panel {
+      border-color: var(--magenta-bright);
+      box-shadow: 0 0 28px rgba(255, 0, 127, 0.45);
+    }
+
+    .battle-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .combatant-card {
+      background: rgba(3, 5, 8, 0.92);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      padding: 6px;
+      border-radius: 5px;
+      width: 48%;
+    }
+    .combatant-card.enemy {
+      border-color: rgba(255, 0, 127, 0.45);
+    }
+
+    .hp-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: #080d16;
+      border-radius: 3px;
+      margin-top: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.4);
+    }
+
+    .hp-bar-fill {
+      height: 100%;
+      background: var(--cyan-bright);
+      width: 100%;
+      transition: width 0.3s ease;
+    }
+    .hp-bar-fill.enemy {
+      background: var(--magenta-bright);
+    }
+
+    .battle-log {
+      flex: 1;
+      min-height: 45px;
+      max-height: 75px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 4px;
+      padding: 6px;
+      margin: 6px 0;
+      font-size: 9px;
+      overflow-y: auto;
+      line-height: 1.4;
+    }
+
+    .battle-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .btn {
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid var(--cyan-bright);
+      color: #fff;
+      padding: 7px;
+      border-radius: 5px;
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .btn:active {
+      background: var(--cyan-bright);
+      color: #030508;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn.magenta {
+      background: rgba(255, 0, 127, 0.15);
+      border-color: var(--magenta-bright);
+    }
+    .btn.magenta:active {
+      background: var(--magenta-bright);
+      color: #fff;
+    }
+
+    .dialogue-box {
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255, 183, 0, 0.45);
+      border-radius: 5px;
+      padding: 8px;
+      font-size: 10px;
+      line-height: 1.4;
+      margin: 6px 0;
+      color: #fceea7;
+      min-height: 50px;
+    }
+
+    .workbench-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      padding: 8px;
+      border-radius: 5px;
+      margin-bottom: 6px;
+    }
+
+    .workbench-info h4 {
+      color: var(--cyan-bright);
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+
+    .workbench-info p {
+      font-size: 9px;
+      color: #8ab0d0;
+    }
+
+    .cost-tag {
+      font-size: 8px;
+      color: var(--yellow-ochre);
+      margin-top: 2px;
+    }
+
+    .sound-badge {
+      cursor: pointer;
+      border: 1px dashed var(--cyan-bright);
+      transition: all 0.2s ease;
+    }
+    .sound-badge:hover {
+      background: rgba(0, 240, 255, 0.25);
+    }
+
+    @media (max-height: 480px) and (orientation: landscape) {
+      #touch-dpad {
+        width: 120px;
+        height: 120px;
+      }
+      .action-prompt-btn {
+        padding: 8px 14px;
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+<body tabindex="0">
+
+<div id="app-container">
+  <div id="toast-banner">SYSTEM NOTIFICATION</div>
+
+  <header id="top-bar">
+    <div class="hud-title-group">
+      <div class="hud-title">⚡ ARIA-01 // BOCACHICA SECTOR 0</div>
+      <div class="status-tag" id="weather-badge">CLEAR AIR</div>
+      <div class="status-tag" id="time-badge" style="border-color: var(--yellow-ochre); color: var(--yellow-ochre); background: rgba(255, 183, 0, 0.1);">DAY 06:00</div>
+    </div>
+    <div class="hud-stats">
+      <div class="stat-badge sound-badge" id="audio-toggle-badge" onclick="toggleAudioEngine()" title="Toggle Audio">
+        <span>AUDIO:</span>
+        <strong id="audio-status">ON</strong>
+      </div>
+      <div class="stat-badge">
+        <span>HP:</span>
+        <strong id="hud-hp">100/100</strong>
+      </div>
+      <div class="stat-badge magenta">
+        <span>ORG:</span>
+        <strong id="hud-organite">15</strong>
+      </div>
+      <div class="stat-badge">
+        <span>CHIP:</span>
+        <strong id="hud-chips">4</strong>
+      </div>
+      <div class="stat-badge yellow hidden" id="quest-badge">
+        <span>Q:</span>
+        <strong id="hud-quest-status">0/3</strong>
+      </div>
+      <button class="top-workbench-btn" onclick="toggleWorkbench()">🔧 WORKBENCH</button>
+    </div>
+  </header>
+
+  <main id="viewport">
+    <canvas id="game-canvas"></canvas>
+    <div class="crt-overlay"></div>
+
+    <!-- Retro Handheld Overlay Controls -->
+    <div id="glass-controls-overlay">
+      <div id="touch-dpad">
+        <button class="dpad-btn dpad-up" onclick="triggerMove(0, -1)">▲</button>
+        <button class="dpad-btn dpad-left" onclick="triggerMove(-1, 0)">◄</button>
+        <div class="dpad-center">GBA</div>
+        <button class="dpad-btn dpad-right" onclick="triggerMove(1, 0)">►</button>
+        <button class="dpad-btn dpad-down" onclick="triggerMove(0, 1)">▼</button>
+      </div>
+
+      <div class="action-group">
+        <button class="action-prompt-btn" onclick="interactWithNPC()">💬 TALK / LOOT [E]</button>
+        <div style="font-size: 8px; color: rgba(208, 232, 255, 0.75); font-weight: bold;">PC: WASD / ARROWS / SPACE</div>
+      </div>
+    </div>
+
+    <!-- Combat Panel Overlay -->
+    <div id="battle-panel" class="overlay-panel hidden">
+      <div class="battle-header">
+        <span style="color: var(--magenta-bright); font-weight: bold; font-size: 10px;" id="battle-header-title">⚡ COMBAT ENGAGED // HOSTILE THREAT</span>
+        <span id="battle-turn" style="font-size: 8px; color: var(--yellow-ochre);">ACTIVE</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
+        <div class="combatant-card">
+          <div style="font-size: 10px; font-weight: bold; color: var(--cyan-bright);">ARIA-01</div>
+          <div class="hp-bar-bg"><div id="player-hp-fill" class="hp-bar-fill"></div></div>
+          <div style="font-size: 8px; margin-top: 3px;" id="player-hp-text">100 / 100 HP</div>
+        </div>
+        <div class="combatant-card enemy">
+          <div style="font-size: 10px; font-weight: bold; color: var(--magenta-bright);" id="enemy-name">SENTINEL-UAV</div>
+          <div class="hp-bar-bg"><div id="enemy-hp-fill" class="hp-bar-fill enemy"></div></div>
+          <div style="font-size: 8px; margin-top: 3px;" id="enemy-hp-text">50 / 50 HP</div>
+        </div>
+      </div>
+
+      <div id="battle-log" class="battle-log">
+        <div style="color: var(--cyan-bright);">> Intercepted hostile entity in Bocachica Marsh!</div>
+      </div>
+
+      <div class="battle-actions">
+        <button class="btn battle-action-btn" onclick="executeBattleAction('attack')">⚔️ Strike</button>
+        <button class="btn battle-action-btn" onclick="executeBattleAction('defend')">🛡️ Shield</button>
+        <button class="btn magenta battle-action-btn" onclick="executeBattleAction('pulse')">⚡ Bio-Pulse</button>
+        <button class="btn battle-action-btn" onclick="executeBattleAction('flee')">💨 Cloak Slip</button>
+      </div>
+    </div>
+
+    <!-- Dialogue Overlay -->
+    <div id="dialogue-panel" class="overlay-panel hidden" style="border-color: var(--yellow-ochre);">
+      <div class="battle-header">
+        <span id="dialogue-title" style="color: var(--yellow-ochre); font-weight: bold; font-size: 10px;">💬 COMMANDER VANCE // GOV LEADER</span>
+        <button style="background:none; border:none; color:var(--yellow-ochre); font-weight:bold; cursor:pointer;" onclick="closeDialogue()">[X]</button>
+      </div>
+      <div class="dialogue-box" id="dialogue-text">
+        "Bocachica Marsh is GCI Corp property under Commander Vance's command. Bring me 3 Organite Crystals, ARIA, and I'll clear your classification tag."
+      </div>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button id="dialogue-action-btn" class="btn" style="border-color: var(--yellow-ochre); color: var(--yellow-ochre);" onclick="acceptOrProgressQuest()">ACCEPT / CONTINUE</button>
+      </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div id="gameover-panel" class="overlay-panel hidden" style="border-color: var(--magenta-bright); box-shadow: 0 0 30px rgba(255,0,127,0.5);">
+      <div class="battle-header">
+        <span style="color: var(--magenta-bright); font-weight: bold; font-size: 10px;">💀 SYSTEM TERMINATED // SLATE ZERO</span>
+      </div>
+      <div class="dialogue-box" style="border-color: rgba(255,0,127,0.4); color: #ff88c2;">
+        Critical biopunk integration error in Bocachica wasteland. ARIA-01 core integrity compromised. Slate zero reset required.
+      </div>
+      <div style="display: flex; justify-content: center; margin-top: 4px;">
+        <button class="btn magenta" onclick="resetGameToSlateZero()">RESTART SLATE ZERO</button>
+      </div>
+    </div>
+
+    <!-- Workbench Modal -->
+    <div id="workbench-panel" class="overlay-panel hidden">
+      <div class="battle-header">
+        <span style="color: var(--cyan-bright); font-weight: bold; font-size: 10px;">🔧 WETWARE GCI WORKBENCH</span>
+        <button style="background:none; border:none; color:var(--magenta-bright); font-weight:bold; cursor:pointer;" onclick="toggleWorkbench()">[X]</button>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding-right:2px;">
+        <div class="workbench-item">
+          <div class="workbench-info">
+            <h4>Kinetic Overclock (+18 ATK)</h4>
+            <p>Enhances biopunk muscle force.</p>
+            <div class="cost-tag">Cost: 10 Org, 2 Chips</div>
+          </div>
+          <button class="btn" onclick="craftAugment('atk')">FORGE</button>
+        </div>
+
+        <div class="workbench-item">
+          <div class="workbench-info">
+            <h4>Reflex Dermis Weave (+12 DEF)</h4>
+            <p>Subdermal kinetic armor plating.</p>
+            <div class="cost-tag">Cost: 8 Org, 2 Chips</div>
+          </div>
+          <button class="btn" onclick="craftAugment('def')">FORGE</button>
+        </div>
+
+        <div class="workbench-item">
+          <div class="workbench-info">
+            <h4>Nanite Tissue Matrix (+45 HP)</h4>
+            <p>Repairs biological tissue matrix.</p>
+            <div class="cost-tag">Cost: 15 Org, 3 Chips</div>
+          </div>
+          <button class="btn" onclick="craftAugment('hp')">FORGE</button>
+        </div>
+
+        <div class="workbench-item">
+          <div class="workbench-info">
+            <h4>Vance-GCI Cyberware Sync (+25 ATK, +15 DEF)</h4>
+            <p>Authorized military GCI Corp wetware upgrade.</p>
+            <div class="cost-tag">Cost: 30 Org, 8 Chips</div>
+          </div>
+          <button class="btn" onclick="craftAugment('gov_sync')">FORGE</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  let audioCtx = null;
+  let audioEnabled = true;
+  let bgmInterval = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    if (audioEnabled && !bgmInterval) {
+      startBGM();
+    }
+  }
+
+  function startBGM() {
+    if (bgmInterval) return;
+    const bassNotes = [110, 98, 82, 92];
+    let noteIdx = 0;
+    bgmInterval = setInterval(() => {
+      if (!audioEnabled || !audioCtx) return;
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(bassNotes[noteIdx], now);
+        
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(340, now);
+
+        gain.gain.setValueAtTime(0.044, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 1.2);
+
+        noteIdx = (noteIdx + 1) % bassNotes.length;
+      } catch (e) {}
+    }, 1500);
+  }
+
+  function toggleAudioEngine() {
+    audioEnabled = !audioEnabled;
+    const badge = document.getElementById('audio-status');
+    badge.innerText = audioEnabled ? "ON" : "OFF";
+    showToast(audioEnabled ? "Audio Synthesizer Enabled" : "Audio Muted");
+    if (audioEnabled) {
+      initAudio();
+      playSound('ui');
+    } else if (bgmInterval) {
+      clearInterval(bgmInterval);
+      bgmInterval = null;
+    }
+  }
+
+  function playSound(type) {
+    if (!audioEnabled) return;
+    try {
+      initAudio();
+      const now = audioCtx.currentTime;
+
+      if (type === 'move') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.04);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      } 
+      else if (type === 'bump') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+        gain.gain.setValueAtTime(0.13, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      }
+      else if (type === 'crystal') {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(880, now);
+        osc1.frequency.exponentialRampToValueAtTime(1760, now + 0.2);
+        osc2.frequency.setValueAtTime(1320, now);
+        gain.gain.setValueAtTime(0.13, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.25);
+        osc2.stop(now + 0.25);
+      }
+      else if (type === 'heal') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(1040, now + 0.2);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      }
+      else if (type === 'hit') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.12);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      }
+      else if (type === 'ui') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+    } catch (e) {}
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast-banner');
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); }, 2200);
+  }
+
+  const TILE_SIZE = 36;
+  const GRID_COLS = 52;
+  const GRID_ROWS = 52;
+
+  let gameState = {};
+  let weatherParticles = [];
+  let weatherType = 'CLEAR';
+  let acidTileCount = 0;
+  let redTileCount = 0;
+
+  // 24-Minute Day/Night Cycle
+  const DAY_CYCLE_MS = 24 * 60 * 1000; 
+  let gameStartTime = Date.now();
+
+  function getInGameTime() {
+    const elapsed = (Date.now() - gameStartTime) % DAY_CYCLE_MS;
+    const progress = elapsed / DAY_CYCLE_MS;
+    const totalMinutes = Math.floor(progress * 24 * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.floor(totalMinutes % 60);
+    const isNight = hours < 6 || hours >= 18;
+    return {
+      hours,
+      minutes,
+      progress,
+      isNight,
+      formatted: `${isNight ? 'NIGHT' : 'DAY'} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+    };
+  }
+
+  function updateDayNightCycle() {
+    const timeData = getInGameTime();
+    const badge = document.getElementById('time-badge');
+    badge.innerText = timeData.formatted;
+    if (timeData.isNight) {
+      badge.style.borderColor = 'var(--magenta-bright)';
+      badge.style.color = 'var(--magenta-bright)';
+      badge.style.background = 'rgba(255, 0, 127, 0.1)';
+    } else {
+      badge.style.borderColor = 'var(--yellow-ochre)';
+      badge.style.color = 'var(--yellow-ochre)';
+      badge.style.background = 'rgba(255, 183, 0, 0.1)';
+    }
+  }
+
+  function setWeather(newWeather) {
+    if (weatherType === newWeather) return;
+    weatherType = newWeather;
+    const badge = document.getElementById('weather-badge');
+    
+    if (weatherType === 'ACID_RAIN') {
+      badge.innerText = 'ACID RAIN';
+      badge.style.borderColor = 'var(--green-acid)';
+      badge.style.color = 'var(--green-acid)';
+      badge.style.background = 'rgba(0, 255, 136, 0.1)';
+      showToast("🌧️ BOCACHICA WEATHER: ACID RAIN");
+    } else if (weatherType === 'SYNTH_FOG') {
+      badge.innerText = 'SYNTH FOG';
+      badge.style.borderColor = 'var(--magenta-bright)';
+      badge.style.color = 'var(--magenta-bright)';
+      badge.style.background = 'rgba(255, 0, 127, 0.1)';
+      showToast("🌫️ WASTELAND WEATHER: SYNTHETIC FOG");
+    } else {
+      badge.innerText = 'CLEAR AIR';
+      badge.style.borderColor = 'var(--cyan-bright)';
+      badge.style.color = 'var(--cyan-bright)';
+      badge.style.background = 'rgba(0, 240, 255, 0.1)';
+      showToast("☀️ CLEAR AIR OVER BOCA MARSH");
+    }
+    initializeWeather();
+  }
+
+  function updateDynamicWeather(tileType) {
+    if (tileType === 6) {
+      acidTileCount += 2;
+      redTileCount = Math.max(0, redTileCount - 1);
+    } else if (tileType === 1) {
+      redTileCount += 2;
+      acidTileCount = Math.max(0, acidTileCount - 1);
+    } else {
+      if (acidTileCount > 0) acidTileCount--;
+      if (redTileCount > 0) redTileCount--;
+    }
+
+    if (acidTileCount >= 3) {
+      setWeather('ACID_RAIN');
+    } else if (redTileCount >= 3) {
+      setWeather('SYNTH_FOG');
+    } else if (acidTileCount === 0 && redTileCount === 0) {
+      setWeather('CLEAR');
+    }
+  }
+
+  function initializeWeather() {
+    weatherParticles = [];
+    const count = weatherType === 'ACID_RAIN' ? 50 : (weatherType === 'SYNTH_FOG' ? 30 : 0);
+    for (let i = 0; i < count; i++) {
+      weatherParticles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        length: Math.random() * 12 + 6,
+        speed: Math.random() * 4 + 3,
+        opacity: Math.random() * 0.6 + 0.2,
+        size: Math.random() * 22 + 12
+      });
+    }
+  }
+
+  function updateAndDrawWeather(targetCtx, w, h) {
+    if (weatherType === 'CLEAR') return;
+    targetCtx.save();
+    if (weatherType === 'ACID_RAIN') {
+      targetCtx.strokeStyle = '#00ff88';
+      targetCtx.lineWidth = 1;
+      weatherParticles.forEach(p => {
+        targetCtx.globalAlpha = p.opacity;
+        targetCtx.beginPath();
+        targetCtx.moveTo(p.x, p.y);
+        targetCtx.lineTo(p.x - 2, p.y + p.length);
+        targetCtx.stroke();
+
+        p.y += p.speed;
+        p.x -= 0.5;
+        if (p.y > h) {
+          p.y = -10;
+          p.x = Math.random() * w;
+        }
+      });
+    } else if (weatherType === 'SYNTH_FOG') {
+      weatherParticles.forEach(p => {
+        targetCtx.globalAlpha = p.opacity * 0.18;
+        targetCtx.fillStyle = '#ff007f';
+        targetCtx.beginPath();
+        targetCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        p.x += Math.sin(p.y * 0.01) * 0.5;
+        p.y -= 0.3;
+        if (p.y < -20) {
+          p.y = h + 20;
+          p.x = Math.random() * w;
+        }
+      });
+    }
+    targetCtx.restore();
+  }
+
+  function drawDayNightOverlay(targetCtx, w, h) {
+    const timeData = getInGameTime();
+    targetCtx.save();
+    let alpha = 0;
+    let color = '#020614';
+
+    const h24 = timeData.hours + timeData.minutes / 60;
+    if (h24 >= 18 && h24 < 20) {
+      const t = (h24 - 18) / 2;
+      alpha = t * 0.55;
+      color = '#200826';
+    } else if (h24 >= 20 || h24 < 4) {
+      alpha = 0.65;
+      color = '#020512';
+    } else if (h24 >= 4 && h24 < 6) {
+      const t = 1 - (h24 - 4) / 2;
+      alpha = t * 0.55;
+      color = '#180e28';
+    }
+
+    if (alpha > 0) {
+      targetCtx.fillStyle = color;
+      targetCtx.globalAlpha = alpha;
+      targetCtx.fillRect(0, 0, w, h);
+    }
+    targetCtx.restore();
+  }
+
+  // Tile Types: 0: Floor, 1: Red Zone, 2: Wall, 3: Crystal, 4: Hut Door, 5: Building Wall, 6: Acid, 7: Lab Door, 8: Bunker Door, 9: Armory Door, 10: Vault Door, 11: Night Food Market, 12: Cyan-Magenta Heal Tile
+  function initializeGameSlateZero() {
+    acidTileCount = 0;
+    redTileCount = 0;
+    weatherType = 'CLEAR';
+    gameStartTime = Date.now();
+
+    gameState = {
+      player: {
+        gridX: 26,
+        gridY: 26,
+        worldX: 26 * TILE_SIZE,
+        worldY: 26 * TILE_SIZE,
+        targetWorldX: 26 * TILE_SIZE,
+        targetWorldY: 26 * TILE_SIZE,
+        isMoving: false,
+        dir: 'DOWN',
+        stats: { hp: 100, maxHp: 100, atk: 25, def: 12, organite: 15, chips: 4 }
+      },
+      npcs: [
+        { id: 'vance', gridX: 22, gridY: 24, name: "COMMANDER VANCE // GCI LEADER", type: 'vance', questState: 0, crystalsGathered: 0 },
+        { id: 'kaelen', gridX: 14, gridY: 14, name: "SCOUT KAELEN // PATROL", type: 'kaelen', questState: 0 },
+        { id: 'mira', gridX: 38, gridY: 38, name: "ARCHIVIST MIRA // LORE", type: 'mira', questState: 0 },
+        { id: 'nexus', gridX: 34, gridY: 16, name: "CYBORG NEXUS-7 // TECH", type: 'nexus', questState: 0 },
+        { id: 'dr_syn', gridX: 10, gridY: 40, name: "DR. SYN // GENETICS", type: 'syn', questState: 0 },
+        { id: 'market_chef', gridX: 20, gridY: 30, name: "CHEF BARK // NIGHT FOOD MARKET", type: 'market', questState: 0 }
+      ],
+      structures: [
+        { id: 'hut1', name: "CYBER-HUT (REST)", doorX: 26, doorY: 25, type: 'hut' },
+        { id: 'market1', name: "BOCACHICA NIGHT FOOD MARKET", doorX: 20, doorY: 29, type: 'market' },
+        { id: 'lab1', name: "GENETIC OUTPOST LAB", doorX: 16, doorY: 17, type: 'lab', looted: false },
+        { id: 'bunker1', name: "ORGANITE STORAGE BUNKER", doorX: 36, doorY: 30, type: 'bunker', looted: false },
+        { id: 'armory1', name: "GMO WETWARE ARMORY", doorX: 16, doorY: 35, type: 'armory', looted: false },
+        { id: 'vault1', name: "ACID SLUDGE VAULT", doorX: 38, doorY: 16, type: 'vault', looted: false }
+      ],
+      inBattle: false,
+      battleTurn: 'PLAYER', // 'PLAYER' or 'ENEMY' or 'BUSY'
+      inDialogue: false,
+      activeNpc: null,
+      gameOver: false,
+      currentEnemy: null,
+      mapData: []
+    };
+
+    for (let r = 0; r < GRID_ROWS; r++) {
+      const row = [];
+      for (let c = 0; c < GRID_COLS; c++) {
+        const rand = Math.random();
+        if (r === 0 || r === GRID_ROWS - 1 || c === 0 || c === GRID_COLS - 1) {
+          row.push(2); // Outer Wall
+        }
+        // Central Cyber-Hut Structure
+        else if (r >= 23 && r <= 25 && c >= 25 && c <= 27) {
+          if (r === 25 && c === 26) row.push(4); // Hut Door
+          else row.push(5);
+        }
+        // Night Food Market Structure
+        else if (r >= 27 && r <= 29 && c >= 19 && c <= 21) {
+          if (r === 29 && c === 20) row.push(11); // Market Door
+          else row.push(5);
+        }
+        // Genetic Outpost Lab
+        else if (r >= 15 && r <= 17 && c >= 15 && c <= 17) {
+          if (r === 17 && c === 16) row.push(7); // Lab Door
+          else row.push(5);
+        }
+        // Storage Bunker
+        else if (r >= 28 && r <= 30 && c >= 35 && c <= 37) {
+          if (r === 30 && c === 36) row.push(8); // Bunker Door
+          else row.push(5);
+        }
+        // GMO Wetware Armory
+        else if (r >= 33 && r <= 35 && c >= 15 && c <= 17) {
+          if (r === 35 && c === 16) row.push(9); // Armory Door
+          else row.push(5);
+        }
+        // Acid Sludge Vault
+        else if (r >= 14 && r <= 16 && c >= 37 && c <= 39) {
+          if (r === 16 && c === 38) row.push(10); // Vault Door
+          else row.push(5);
+        }
+        else if (rand < 0.14) row.push(1); // Red Danger Zone
+        else if (rand < 0.24) row.push(6); // Green Acid Hazard
+        else if (rand < 0.27) row.push(12); // Cyan-Magenta Heal Tile (Rare)
+        else if (rand < 0.33) row.push(2); // Wall
+        else if (rand < 0.39) row.push(3); // Crystal
+        else row.push(0); // Floor
+      }
+      gameState.mapData.push(row);
+    }
+
+    // Clear start surrounding player
+    gameState.mapData[26][26] = 0;
+    gameState.mapData[26][27] = 0;
+
+    buildStaticMapBuffer();
+    setWeather('CLEAR');
+    updateHud();
+    document.getElementById('quest-badge').classList.add('hidden');
+    document.getElementById('gameover-panel').classList.add('hidden');
+    document.getElementById('battle-panel').classList.add('hidden');
+    document.getElementById('dialogue-panel').classList.add('hidden');
+    document.getElementById('workbench-panel').classList.add('hidden');
+  }
+
+  const mapCanvas = document.createElement('canvas');
+  mapCanvas.width = GRID_COLS * TILE_SIZE;
+  mapCanvas.height = GRID_ROWS * TILE_SIZE;
+  const mapCtx = mapCanvas.getContext('2d');
+
+  function buildStaticMapBuffer() {
+    mapCtx.fillStyle = '#030508';
+    mapCtx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
+
+    for (let r = 0; r < GRID_ROWS; r++) {
+      for (let c = 0; c < GRID_COLS; c++) {
+        const x = c * TILE_SIZE;
+        const y = r * TILE_SIZE;
+        const t = gameState.mapData[r][c];
+
+        if (t === 5) {
+          mapCtx.fillStyle = '#141d2b';
+          mapCtx.fillRect(x, y, TILE_SIZE - 1, TILE_SIZE - 1);
+          mapCtx.strokeStyle = '#00f0ff';
+          mapCtx.strokeRect(x + 1, y + 1, TILE_SIZE - 3, TILE_SIZE - 3);
+        } else if (t === 4 || t === 7 || t === 8 || t === 9 || t === 10 || t === 11) {
+          mapCtx.fillStyle = t === 4 ? '#ffb700' : (t === 7 ? '#ff007f' : (t === 8 ? '#00ff88' : (t === 9 ? '#00f0ff' : (t === 10 ? '#ffb700' : '#ff00ea'))));
+          mapCtx.fillRect(x, y, TILE_SIZE - 1, TILE_SIZE - 1);
+          mapCtx.fillStyle = '#030508';
+          mapCtx.font = 'bold 8px monospace';
+          const label = t === 4 ? 'REST' : (t === 7 ? 'LAB' : (t === 8 ? 'LOOT' : (t === 9 ? 'ARM' : (t === 10 ? 'VAULT' : 'FOOD'))));
+          mapCtx.fillText(label, x + 4, y + 22);
+        } else {
+          mapCtx.fillStyle = (r + c) % 2 === 0 ? '#060a12' : '#0a0f1c';
+          mapCtx.fillRect(x, y, TILE_SIZE - 1, TILE_SIZE - 1);
+
+          if (t === 1) {
+            mapCtx.fillStyle = 'rgba(255, 0, 127, 0.4)';
+            mapCtx.fillRect(x + 2, y + 2, TILE_SIZE - 5, TILE_SIZE - 5);
+            mapCtx.strokeStyle = '#ff007f';
+            mapCtx.strokeRect(x + 2, y + 2, TILE_SIZE - 5, TILE_SIZE - 5);
+          } else if (t === 6) {
+            mapCtx.fillStyle = 'rgba(0, 255, 128, 0.35)';
+            mapCtx.fillRect(x + 2, y + 2, TILE_SIZE - 5, TILE_SIZE - 5);
+          } else if (t === 12) {
+            mapCtx.fillStyle = 'rgba(255, 0, 234, 0.45)';
+            mapCtx.fillRect(x + 2, y + 2, TILE_SIZE - 5, TILE_SIZE - 5);
+            mapCtx.strokeStyle = '#ff00ea';
+            mapCtx.strokeRect(x + 2, y + 2, TILE_SIZE - 5, TILE_SIZE - 5);
+          } else if (t === 2) {
+            mapCtx.fillStyle = '#111b2d';
+            mapCtx.fillRect(x, y, TILE_SIZE - 1, TILE_SIZE - 1);
+            mapCtx.fillStyle = '#00f0ff';
+            mapCtx.fillRect(x + 4, y + 4, TILE_SIZE - 9, 3);
+          } else if (t === 3) {
+            mapCtx.fillStyle = '#00f0ff';
+            mapCtx.fillRect(x + 10, y + 10, TILE_SIZE - 20, TILE_SIZE - 20);
+          }
+        }
+      }
+    }
+  }
+
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    const vp = document.getElementById('viewport');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = vp.clientWidth * dpr;
+    canvas.height = vp.clientHeight * dpr;
+    ctx.scale(dpr, dpr);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function triggerMove(dx, dy) {
+    if (gameState.player.isMoving || gameState.inBattle || gameState.inDialogue || gameState.gameOver) return;
+
+    const tx = gameState.player.gridX + dx;
+    const ty = gameState.player.gridY + dy;
+
+    if (dx === 1) gameState.player.dir = 'RIGHT';
+    else if (dx === -1) gameState.player.dir = 'LEFT';
+    else if (dy === 1) gameState.player.dir = 'DOWN';
+    else if (dy === -1) gameState.player.dir = 'UP';
+
+    if (tx < 0 || tx >= GRID_COLS || ty < 0 || ty >= GRID_ROWS) {
+      playSound('bump');
+      return;
+    }
+    const tile = gameState.mapData[ty][tx];
+    if (tile === 2 || tile === 5) {
+      playSound('bump');
+      return;
+    }
+
+    playSound('move');
+    gameState.player.gridX = tx;
+    gameState.player.gridY = ty;
+    gameState.player.targetWorldX = tx * TILE_SIZE;
+    gameState.player.targetWorldY = ty * TILE_SIZE;
+    gameState.player.isMoving = true;
+  }
+
+  window.addEventListener('keydown', (e) => {
+    initAudio();
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Enter'].includes(e.key)) {
+      e.preventDefault();
+    }
+    const k = e.key.toLowerCase();
+    if (k === 'w' || e.key === 'ArrowUp') triggerMove(0, -1);
+    if (k === 's' || e.key === 'ArrowDown') triggerMove(0, 1);
+    if (k === 'a' || e.key === 'ArrowLeft') triggerMove(-1, 0);
+    if (k === 'd' || e.key === 'ArrowRight') triggerMove(1, 0);
+    if (k === 'e' || e.key === ' ' || e.key === 'Enter') interactWithNPC();
+  });
+
+  function gameLoop() {
+    if (gameState.player && gameState.player.isMoving) {
+      const lerp = 0.35;
+      const dx = gameState.player.targetWorldX - gameState.player.worldX;
+      const dy = gameState.player.targetWorldY - gameState.player.worldY;
+
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+        gameState.player.worldX = gameState.player.targetWorldX;
+        gameState.player.worldY = gameState.player.targetWorldY;
+        gameState.player.isMoving = false;
+        onTileStepComplete();
+      } else {
+        gameState.player.worldX += dx * lerp;
+        gameState.player.worldY += dy * lerp;
+      }
+    }
+
+    if (gameState.player) {
+      updateDayNightCycle();
+      renderGameScene();
+    }
+    requestAnimationFrame(gameLoop);
+  }
+
+  function renderGameScene() {
+    const vp = document.getElementById('viewport');
+    const viewWidth = vp.clientWidth;
+    const viewHeight = vp.clientHeight;
+
+    ctx.fillStyle = '#030508';
+    ctx.fillRect(0, 0, viewWidth, viewHeight);
+
+    const screenCenterX = Math.floor(viewWidth / 2);
+    const screenCenterY = Math.floor(viewHeight / 2);
+    const camX = Math.round(screenCenterX - gameState.player.worldX - TILE_SIZE / 2);
+    const camY = Math.round(screenCenterY - gameState.player.worldY - TILE_SIZE / 2);
+
+    ctx.drawImage(mapCanvas, camX, camY);
+
+    // Render NPCs
+    gameState.npcs.forEach(npc => {
+      const npcX = Math.round(npc.gridX * TILE_SIZE + camX + TILE_SIZE / 2);
+      const npcY = Math.round(npc.gridY * TILE_SIZE + camY + TILE_SIZE / 2);
+      ctx.save();
+      ctx.translate(npcX, npcY);
+      ctx.fillStyle = npc.type === 'vance' ? '#ffb700' : 
+                     (npc.type === 'kaelen' ? '#00f0ff' : 
+                     (npc.type === 'nexus' ? '#ff007f' : 
+                     (npc.type === 'syn' ? '#00ff88' : 
+                     (npc.type === 'market' ? '#ff00ea' : '#e0e0e0'))));
+      ctx.fillRect(-10, -12, 20, 24);
+      ctx.fillStyle = '#030508';
+      ctx.fillRect(-6, -6, 12, 6);
+      ctx.restore();
+    });
+
+    // Render Player Avatar
+    ctx.save();
+    ctx.translate(screenCenterX, screenCenterY);
+    ctx.fillStyle = '#00f0ff';
+    ctx.fillRect(-11, -13, 22, 26);
+    ctx.fillStyle = '#ff007f';
+    const d = gameState.player.dir;
+    if (d === 'DOWN') ctx.fillRect(-7, -5, 14, 4);
+    else if (d === 'UP') ctx.fillRect(-7, -9, 14, 4);
+    else if (d === 'LEFT') ctx.fillRect(-9, -5, 7, 4);
+    else if (d === 'RIGHT') ctx.fillRect(2, -5, 7, 4);
+    ctx.restore();
+
+    // Weather Effects
+    updateAndDrawWeather(ctx, viewWidth, viewHeight);
+
+    // Day/Night Ambient Filter
+    drawDayNightOverlay(ctx, viewWidth, viewHeight);
+  }
+
+  function onTileStepComplete() {
+    const gx = gameState.player.gridX;
+    const gy = gameState.player.gridY;
+    const t = gameState.mapData[gy][gx];
+
+    updateDynamicWeather(t);
+
+    if (t === 3) {
+      playSound('crystal');
+      gameState.player.stats.organite += 5;
+      gameState.player.stats.chips += 1;
+      gameState.mapData[gy][gx] = 0;
+      buildStaticMapBuffer();
+      updateHud();
+      showToast("Mined Organite (+5 Org, +1 Chip)");
+
+      const vance = gameState.npcs.find(n => n.type === 'vance');
+      if (vance && vance.questState === 1) {
+        vance.crystalsGathered++;
+        if (vance.crystalsGathered >= 3) {
+          showToast("QUEST GOAL MET: Return to Commander Vance!");
+        }
+      }
+    }
+
+    if (t === 6) {
+      playSound('hit');
+      gameState.player.stats.hp = Math.max(0, gameState.player.stats.hp - 8);
+      updateHud();
+      showToast("⚠️ GREEN ACID HAZARD! -8 HP");
+      checkPlayerDefeat();
+    }
+
+    if (t === 12) {
+      playSound('heal');
+      const healAmt = 5;
+      gameState.player.stats.hp = Math.min(gameState.player.stats.maxHp, gameState.player.stats.hp + healAmt);
+      updateHud();
+      showToast("✨ CYAN-MAGENTA NANITE TILE: +5 HP RECOVERED!");
+    }
+
+    if (t === 1 && Math.random() < 0.55) {
+      initiateBattle();
+    }
+  }
+
+  function interactWithNPC() {
+    playSound('ui');
+    const gx = gameState.player.gridX;
+    const gy = gameState.player.gridY;
+
+    // Cyber Hut Rest Entrance
+    if (gx === 26 && gy === 25) {
+      gameState.player.stats.hp = gameState.player.stats.maxHp;
+      updateHud();
+      showToast("🏠 Entered Cyber-Hut: HP Fully Restored!");
+      return;
+    }
+
+    // Night Food Market Entrance
+    if (gx === 20 && gy === 29) {
+      gameState.player.stats.hp = Math.min(gameState.player.stats.maxHp, gameState.player.stats.hp + 35);
+      gameState.player.stats.chips = Math.max(0, gameState.player.stats.chips - 1);
+      updateHud();
+      showToast("🍜 Bocachica Night Market: Rations consumed! +35 HP, -1 Chip");
+      return;
+    }
+
+    // Genetic Outpost Lab Looting
+    if (gx === 16 && gy === 17) {
+      const lab = gameState.structures.find(s => s.id === 'lab1');
+      if (lab && !lab.looted) {
+        lab.looted = true;
+        gameState.player.stats.chips += 5;
+        gameState.player.stats.atk += 8;
+        updateHud();
+        showToast("🔬 Looted Genetic Lab: +5 Core Chips, +8 ATK Mod!");
+      } else {
+        showToast("Genetic Outpost Lab already looted.");
+      }
+      return;
+    }
+
+    // Storage Bunker Looting
+    if (gx === 36 && gy === 30) {
+      const bunker = gameState.structures.find(s => s.id === 'bunker1');
+      if (bunker && !bunker.looted) {
+        bunker.looted = true;
+        gameState.player.stats.organite += 25;
+        gameState.player.stats.def += 6;
+        updateHud();
+        showToast("📦 Looted Bunker: +25 Organite, +6 DEF Shield!");
+      } else {
+        showToast("Storage Bunker already looted.");
+      }
+      return;
+    }
+
+    // GMO Wetware Armory Looting
+    if (gx === 16 && gy === 35) {
+      const armory = gameState.structures.find(s => s.id === 'armory1');
+      if (armory && !armory.looted) {
+        armory.looted = true;
+        gameState.player.stats.atk += 14;
+        gameState.player.stats.chips += 3;
+        updateHud();
+        showToast("⚔️ Looted Armory: +14 Kinetic ATK, +3 Chips!");
+      } else {
+        showToast("GMO Armory already looted.");
+      }
+      return;
+    }
+
+    // Acid Sludge Vault Looting
+    if (gx === 38 && gy === 16) {
+      const vault = gameState.structures.find(s => s.id === 'vault1');
+      if (vault && !vault.looted) {
+        vault.looted = true;
+        gameState.player.stats.organite += 40;
+        gameState.player.stats.maxHp += 30;
+        gameState.player.stats.hp += 30;
+        updateHud();
+        showToast("🧪 Looted Sludge Vault: +40 Organite, +30 Max HP!");
+      } else {
+        showToast("Acid Sludge Vault already looted.");
+      }
+      return;
+    }
+
+    const nearbyNpc = gameState.npcs.find(n => Math.abs(gx - n.gridX) + Math.abs(gy - n.gridY) <= 1);
+    if (!nearbyNpc) {
+      showToast("Move closer to an NPC, Structure, or Outpost door!");
+      return;
+    }
+
+    gameState.inDialogue = true;
+    gameState.activeNpc = nearbyNpc;
+
+    const panel = document.getElementById('dialogue-panel');
+    const title = document.getElementById('dialogue-title');
+    const txt = document.getElementById('dialogue-text');
+    const btn = document.getElementById('dialogue-action-btn');
+
+    title.innerText = `💬 ${nearbyNpc.name}`;
+
+    if (nearbyNpc.type === 'vance') {
+      btn.style.display = 'inline-block';
+      if (nearbyNpc.questState === 0) {
+        txt.innerText = `"Bocachica Marsh is GCI Corp property under Commander Vance's command. Bring me 3 Organite Crystals from the acid marshlands, ARIA, and I will clear your rogue tag."`;
+        btn.innerText = "ACCEPT GCI QUEST";
+      } else if (nearbyNpc.questState === 1) {
+        if (nearbyNpc.crystalsGathered >= 3) {
+          txt.innerText = `"Exemplary obedience, ARIA. You secured the marsh crystals. Here are 4 Core Chips and an executive weapons authorization."`;
+          btn.innerText = "COMPLETE QUEST";
+        } else {
+          txt.innerText = `"Harvest more Organite Crystals from the marshlands. (${nearbyNpc.crystalsGathered}/3 gathered)"`;
+          btn.innerText = "CLOSE";
+        }
+      } else {
+        txt.innerText = `"Bocachica Sector Zero remains secure under GCI military oversight. Keep your wetware implants calibrated."`;
+        btn.innerText = "CLOSE";
+      }
+    } else if (nearbyNpc.type === 'market') {
+      btn.style.display = 'inline-block';
+      btn.innerText = "BUY RATIONS (1 CHIP)";
+      txt.innerText = `"Welcome to the Bocachica Night Food Market, synthetic! Fresh synthetic noodle bowls and radiation-filtered rations hot off the induction grill. Want a bowl for 1 Chip?"`;
+    } else if (nearbyNpc.type === 'nexus') {
+      btn.style.display = 'inline-block';
+      if (nearbyNpc.questState === 0) {
+        txt.innerText = `"GCI Corp sentinel networks are tracking your telemetry. Give me 15 Organite and I'll scramble their radar signature."`;
+        btn.innerText = "TRADE 15 ORG";
+      } else {
+        txt.innerText = `"Radar scrambled! Sector Zero's weather shifts according to marsh toxicity."`;
+        btn.innerText = "CLOSE";
+      }
+    } else if (nearbyNpc.type === 'syn') {
+      btn.style.display = 'inline-block';
+      if (nearbyNpc.questState === 0) {
+        txt.innerText = `"Artificial biological enhancement requires precision. Pay 2 Core Chips to upgrade your synthetic tissue matrix."`;
+        btn.innerText = "PAY 2 CHIPS (+25 MAX HP)";
+      } else {
+        txt.innerText = `"Your cellular matrix is fully upgraded."`;
+        btn.innerText = "CLOSE";
+      }
+    } else if (nearbyNpc.type === 'kaelen') {
+      btn.style.display = 'inline-block';
+      btn.innerText = "CLOSE";
+      txt.innerText = `"Commander Vance controls all GCI Corp supply bunkers around Bocachica. Watch your step near the red military checkpoints."`;
+    } else if (nearbyNpc.type === 'mira') {
+      btn.style.display = 'inline-block';
+      btn.innerText = "CLOSE";
+      txt.innerText = `"Archives show Bocachica Marsh was once a coastal rocket test site before the corporate vat wars. Now it's a radioactive chemical wasteland."`;
+    }
+
+    panel.classList.remove('hidden');
+  }
+
+  function acceptOrProgressQuest() {
+    playSound('ui');
+    const npc = gameState.activeNpc;
+    if (!npc) return closeDialogue();
+
+    if (npc.type === 'vance') {
+      if (npc.questState === 0) {
+        npc.questState = 1;
+        document.getElementById('quest-badge').classList.remove('hidden');
+        document.getElementById('hud-quest-status').innerText = "0/3";
+        showToast("GCI QUEST ACCEPTED: Gather 3 Crystals");
+        closeDialogue();
+      } else if (npc.questState === 1 && npc.crystalsGathered >= 3) {
+        npc.questState = 2;
+        gameState.player.stats.chips += 4;
+        gameState.player.stats.atk += 12;
+        document.getElementById('quest-badge').classList.add('hidden');
+        showToast("QUEST COMPLETED! +4 Chips, +12 ATK");
+        updateHud();
+        closeDialogue();
+      } else {
+        closeDialogue();
+      }
+    } else if (npc.type === 'market') {
+      if (gameState.player.stats.chips >= 1) {
+        gameState.player.stats.chips -= 1;
+        gameState.player.stats.hp = Math.min(gameState.player.stats.maxHp, gameState.player.stats.hp + 40);
+        showToast("🍜 Ate Night Food Rations: +40 HP!");
+        updateHud();
+        closeDialogue();
+      } else {
+        showToast("INSUFFICIENT CHIPS!");
+        closeDialogue();
+      }
+    } else if (npc.type === 'nexus') {
+      if (npc.questState === 0 && gameState.player.stats.organite >= 15) {
+        gameState.player.stats.organite -= 15;
+        gameState.player.stats.chips += 4;
+        npc.questState = 1;
+        showToast("TRADE SUCCESSFUL: +4 Chips!");
+        updateHud();
+        closeDialogue();
+      } else if (npc.questState === 0) {
+        showToast("INSUFFICIENT ORGANITE!");
+        closeDialogue();
+      } else {
+        closeDialogue();
+      }
+    } else if (npc.type === 'syn') {
+      if (npc.questState === 0 && gameState.player.stats.chips >= 2) {
+        gameState.player.stats.chips -= 2;
+        gameState.player.stats.maxHp += 25;
+        gameState.player.stats.hp += 25;
+        npc.questState = 1;
+        showToast("GENETIC ENHANCEMENT: +25 MAX HP!");
+        updateHud();
+        closeDialogue();
+      } else if (npc.questState === 0) {
+        showToast("INSUFFICIENT CHIPS!");
+        closeDialogue();
+      } else {
+        closeDialogue();
+      }
+    } else {
+      closeDialogue();
+    }
+  }
+
+  function closeDialogue() {
+    playSound('ui');
+    gameState.inDialogue = false;
+    gameState.activeNpc = null;
+    document.getElementById('dialogue-panel').classList.add('hidden');
+  }
+
+  const ENEMY_TYPES = [
+    { 
+      name: "SENTINEL-UAV", 
+      hp: 45, 
+      maxHp: 45, 
+      atk: 18, 
+      def: 8,
+      taunts: [
+        "GCI Corp directive: Terminate unauthorized synthetic units!",
+        "Your biopunk weave is obsolete, ARIA-01!"
+      ]
+    },
+    { 
+      name: "VAT-GROWN NECRO-STALKER", 
+      hp: 60, 
+      maxHp: 60, 
+      atk: 22, 
+      def: 10,
+      taunts: [
+        "Hungry... mutated biopunk flesh calling...",
+        "Born from the chemical vats! Suffer!"
+      ]
+    },
+    { 
+      name: "GCI BIO-ROID", 
+      hp: 75, 
+      maxHp: 75, 
+      atk: 26, 
+      def: 14,
+      taunts: [
+        "Commander Vance owns your vat-grown chassis, ARIA!",
+        "You cannot escape the Bocachica wasteland patrols."
+      ]
+    },
+    { 
+      name: "SYNTH-CORRUPTOR", 
+      hp: 100, 
+      maxHp: 100, 
+      atk: 32, 
+      def: 18,
+      taunts: [
+        "Your subroutines will be wiped across the Texas salt flats!",
+        "Yield your organite to the GCI regime!"
+      ]
+    },
+    { 
+      name: "OMEGA SLUDGE-BEAST (MINI-BOSS)", 
+      hp: 160, 
+      maxHp: 160, 
+      atk: 42, 
+      def: 24,
+      taunts: [
+        "I am the wrath of Bocachica Marsh! You are nothing!",
+        "Your cybernetic heart will feed the sludge vats!"
+      ]
+    }
+  ];
+
+  function initiateBattle() {
+    gameState.inBattle = true;
+    gameState.battleTurn = 'ENEMY'; // Enemy ambushes/attacks first
+    setActionButtonsState(false); // Disable actions until enemy finishes initial turn
+
+    const randEnemy = ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)];
+    gameState.currentEnemy = { ...randEnemy };
+
+    document.getElementById('enemy-name').innerText = gameState.currentEnemy.name;
+    document.getElementById('battle-header-title').innerText = `⚡ ENEMY TAUNT: "${gameState.currentEnemy.taunts[0]}"`;
+    document.getElementById('battle-turn').innerText = 'ENEMY TURN';
+    document.getElementById('battle-turn').style.color = 'var(--magenta-bright)';
+    
+    updateBattleHpBars();
+    document.getElementById('battle-panel').classList.remove('hidden');
+    document.getElementById('battle-log').innerHTML = `<div style="color:var(--magenta-bright);">> AMBUSH ENCOUNTER: ${gameState.currentEnemy.name}</div>`;
+
+    // Enemy Turn 1 executes immediately on encounter start
+    setTimeout(() => {
+      executeEnemyTurn();
+    }, 700);
+  }
+
+  function setActionButtonsState(enabled) {
+    const btns = document.querySelectorAll('.battle-action-btn');
+    btns.forEach(b => b.disabled = !enabled);
+  }
+
+  function executeEnemyTurn() {
+    if (!gameState.inBattle || !gameState.currentEnemy) return;
+
+    playSound('hit');
+    const eDmg = Math.max(2, gameState.currentEnemy.atk - gameState.player.stats.def + Math.floor(Math.random() * 4));
+    gameState.player.stats.hp = Math.max(0, gameState.player.stats.hp - eDmg);
+    
+    const randomTaunt = gameState.currentEnemy.taunts[Math.floor(Math.random() * gameState.currentEnemy.taunts.length)];
+    logBattleMessage(`<span style="color:var(--magenta-bright);">> ${gameState.currentEnemy.name}: "${randomTaunt}" (-${eDmg} HP)</span>`);
+    
+    updateBattleHpBars();
+    updateHud();
+
+    if (checkPlayerDefeat()) return;
+
+    // Transition back to Player Turn
+    gameState.battleTurn = 'PLAYER';
+    document.getElementById('battle-turn').innerText = 'YOUR TURN';
+    document.getElementById('battle-turn').style.color = 'var(--cyan-bright)';
+    setActionButtonsState(true);
+  }
+
+  function updateBattleHpBars() {
+    const pPct = Math.max(0, (gameState.player.stats.hp / gameState.player.stats.maxHp) * 100);
+    const ePct = Math.max(0, (gameState.currentEnemy.hp / gameState.currentEnemy.maxHp) * 100);
+
+    document.getElementById('player-hp-fill').style.width = pPct + '%';
+    document.getElementById('enemy-hp-fill').style.width = ePct + '%';
+    document.getElementById('player-hp-text').innerText = `${gameState.player.stats.hp} / ${gameState.player.stats.maxHp} HP`;
+    document.getElementById('enemy-hp-text').innerText = `${gameState.currentEnemy.hp} / ${gameState.currentEnemy.maxHp} HP`;
+  }
+
+  function logBattleMessage(msg) {
+    const log = document.getElementById('battle-log');
+    log.innerHTML += `<div>${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function executeBattleAction(action) {
+    if (!gameState.inBattle || !gameState.currentEnemy || gameState.battleTurn !== 'PLAYER') return;
+    
+    // Lock input during turn resolution
+    gameState.battleTurn = 'BUSY';
+    setActionButtonsState(false);
+
+    const pAtk = gameState.player.stats.atk;
+    const eDef = gameState.currentEnemy.def;
+
+    if (action === 'attack') {
+      playSound('hit');
+      const dmg = Math.max(5, pAtk - eDef + Math.floor(Math.random() * 4));
+      gameState.currentEnemy.hp = Math.max(0, gameState.currentEnemy.hp - dmg);
+      logBattleMessage(`> ARIA strikes for ${dmg} DMG!`);
+    } else if (action === 'defend') {
+      playSound('ui');
+      logBattleMessage(`> Kinetic shield active.`);
+    } else if (action === 'pulse') {
+      playSound('crystal');
+      const pDmg = pAtk + 14;
+      gameState.currentEnemy.hp = Math.max(0, gameState.currentEnemy.hp - pDmg);
+      logBattleMessage(`> ⚡ BIO-PULSE! ${pDmg} DMG!`);
+    } else if (action === 'flee') {
+      playSound('ui');
+      const fleeSuccess = Math.random() < 0.60;
+      if (fleeSuccess) {
+        logBattleMessage(`> Cloak Slip successful! Escaped combat.`);
+        setTimeout(endBattle, 500);
+        return;
+      } else {
+        logBattleMessage(`<span style="color:var(--magenta-bright);">> Cloak Slip FAILED! Enemy locks radar onto you!</span>`);
+      }
+    }
+
+    updateBattleHpBars();
+
+    if (gameState.currentEnemy.hp <= 0) {
+      logBattleMessage(`<span style="color:var(--cyan-bright);">> HOSTILE NEUTRALIZED. BOCACHICA MARSH SECURED.</span>`);
+      gameState.player.stats.organite += 10;
+      gameState.player.stats.chips += 3;
+      updateHud();
+      setTimeout(endBattle, 800);
+      return;
+    }
+
+    // Trigger enemy turn next
+    gameState.battleTurn = 'ENEMY';
+    document.getElementById('battle-turn').innerText = 'ENEMY TURN';
+    document.getElementById('battle-turn').style.color = 'var(--magenta-bright)';
+
+    setTimeout(() => {
+      executeEnemyTurn();
+    }, 600);
+  }
+
+  function checkPlayerDefeat() {
+    if (gameState.player.stats.hp <= 0) {
+      gameState.player.stats.hp = 0;
+      updateHud();
+      gameState.inBattle = false;
+      document.getElementById('battle-panel').classList.add('hidden');
+      document.getElementById('gameover-panel').classList.remove('hidden');
+      gameState.gameOver = true;
+      return true;
+    }
+    return false;
+  }
+
+  function resetGameToSlateZero() {
+    playSound('ui');
+    initializeGameSlateZero();
+    showToast("Rebooted to Slate Zero");
+  }
+
+  function endBattle() {
+    gameState.inBattle = false;
+    gameState.currentEnemy = null;
+    setActionButtonsState(true);
+    document.getElementById('battle-panel').classList.add('hidden');
+  }
+
+  function updateHud() {
+    if (!gameState.player) return;
+    document.getElementById('hud-hp').innerText = `${gameState.player.stats.hp}/${gameState.player.stats.maxHp}`;
+    document.getElementById('hud-organite').innerText = gameState.player.stats.organite;
+    document.getElementById('hud-chips').innerText = gameState.player.stats.chips;
+    const vance = gameState.npcs.find(n => n.type === 'vance');
+    if (vance && vance.questState === 1) {
+      document.getElementById('hud-quest-status').innerText = `${vance.crystalsGathered}/3`;
+    }
+  }
+
+  function toggleWorkbench() {
+    playSound('ui');
+    document.getElementById('workbench-panel').classList.toggle('hidden');
+  }
+
+  function craftAugment(type) {
+    playSound('ui');
+    const p = gameState.player.stats;
+    if (type === 'atk' && p.organite >= 10 && p.chips >= 2) {
+      p.organite -= 10; p.chips -= 2; p.atk += 18;
+      showToast("FORGED: +18 ATK");
+    } else if (type === 'def' && p.organite >= 8 && p.chips >= 2) {
+      p.organite -= 8; p.chips -= 2; p.def += 12;
+      showToast("FORGED: +12 DEF");
+    } else if (type === 'hp' && p.organite >= 15 && p.chips >= 3) {
+      p.organite -= 15; p.chips -= 3; p.maxHp += 45; p.hp += 45;
+      showToast("FORGED: +45 MAX HP");
+    } else if (type === 'gov_sync' && p.organite >= 30 && p.chips >= 8) {
+      p.organite -= 30; p.chips -= 8; p.atk += 25; p.def += 15; p.maxHp += 60; p.hp += 60;
+      showToast("GCI-CORP SYNC FORGED: +25 ATK, +15 DEF, +60 MAX HP!");
+    } else {
+      showToast("INSUFFICIENT RESOURCES FOR GCI UPGRADE!");
+    }
+    updateHud();
+  }
+
+  window.addEventListener('load', () => {
+    resizeCanvas();
+    initializeGameSlateZero();
+    requestAnimationFrame(gameLoop);
+  });
+</script>
+</body>
+</html>
